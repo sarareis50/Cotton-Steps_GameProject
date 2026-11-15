@@ -1,5 +1,8 @@
 #  CottonSteps: A Jornada de Cotton
 
+## Link do Jogo:
+* https://sarareis50.github.io/Cotton-Steps_GameProject/
+
 ## Descrição do Projeto
 **CottonSteps** é uma aventura narrativa interativa desenvolvida em **Phaser 3**.  
 O jogador assume o papel de **Cotton**, uma gata que, após um evento perturbador, desperta num mundo estranhamente silencioso. A sua jornada pela floresta não é apenas uma busca física pela sua Dona, mas um mergulho emocional no processo de luto, negação e, finalmente, aceitação. Através de mecânicas de exploração e diálogos enigmáticos, o jogo explora a força dos laços que transcendem o plano físico.
