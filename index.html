@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Menu Otimizado Com Mapa</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        
+        #bg-video {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain; /* Posso mudar para cover para tela toda! */
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+
+<video id="bg-video" autoplay loop muted playsinline>
+    <source src="assets/assets/menu_cottonsteps.mp4" type="video/mp4">
+</video>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script src="DialogueManager.js"></script>
+<script src="BaseScene.js"></script>
+<script src="MainMenuScene.js"></script>
+<script src="IntroCottonSteps.js"></script>
+<script src="CasaBaixo.js"></script>
+<script src="CasaCima.js"></script>
+<script src="CasaCottonOutside.js"></script>
+<script src="FlorestaCena.js"></script>
+<script src="FinalScene.js"></script>
+<script>
+    // CONFIGURAÇÃO DO PHASER
+    const config = {
+        type: Phaser.AUTO,
+        transparent: true, 
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
+        
+        
+        // ADICIONA ESTE BLOCO DE FÍSICA:
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 0 }, // Como é um jogo de exploração top-down
+                debug: false
+            }
+        },
+        scene: [MainMenuScene, IntroCottonSteps, CasaCima, CasaBaixo,CasaCottonOutside,FlorestaCena,FinalScene]
+    };
+    
+    new Phaser.Game(config);
+</script>
+</body>
+</html>

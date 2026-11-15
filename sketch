@@ -1,0 +1,310 @@
+/*class JogoScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'JogoScene' });
+    }
+
+    preload() {
+        // 1. CARREGAR OS RETRATOS
+        this.load.image('cotton_neutra', 'assets/imagens/cotton/cotton_neutra.png');
+        this.load.image('cotton_happy', 'assets/imagens/cotton/cotton_happy.png');
+        this.load.image('cotton_angry', 'assets/imagens/cotton/cotton_angry.png');
+
+        // 2. CARREGAR A SPRITESHEET
+        this.load.atlas('cotton_player', 'assets/imagens/cotton_animation/cat1.png', 'assets/imagens/cotton_animation/player_data.json'); 
+
+
+
+        // 3. CARREGAR O MAPA JSON
+        this.load.tilemapTiledJSON('mapa', 'assets/tiled/CASA_COTTON.JSON');
+
+        // 4. CARREGAR TODAS AS IMAGENS DOS TILESETS
+        const pathPartes = 'assets/imagens/CASA_COTTON_PARTES/';
+        this.load.image('img_small', pathPartes + 'TopDownHouse_SmallItems.png');
+        this.load.image('img_doors', pathPartes + 'TopDownHouse_DoorsAndWindows.png');
+        this.load.image('img_floors', pathPartes + 'TopDownHouse_FloorsAndWalls.png');
+        this.load.image('img_furn1', pathPartes + 'TopDownHouse_FurnitureState1.png');
+        this.load.image('img_furn2', pathPartes + 'TopDownHouse_FurnitureState2.png');
+    } // <--- FECHA O PRELOAD APENAS AQUI!
+
+    create() {
+        this.podeInteragir = false;
+        this.cameras.main.setBackgroundColor('#000000'); 
+
+        const map = this.make.tilemap({ key: 'mapa' });
+        const todosOsTilesets = [];
+        
+        console.log("--- Detetando Tilesets do Tiled ---");
+        
+        if (map.tilesets && map.tilesets.length > 0) {
+            map.tilesets.forEach(ts => {
+                let nomeInterno = ts.name.trim().toLowerCase();
+                let chaveImagem = '';
+
+                console.log(`Tileset encontrado no JSON: "${ts.name}"`);
+
+                // Filtro Inteligente Ajustado para as Tuas Imagens e Abas do Tiled
+                if (nomeInterno.includes('doors') || nomeInterno.includes('janelas') || nomeInterno.includes('portas') || nomeInterno.includes('windows')) {
+                    chaveImagem = 'img_doors';
+                } 
+                else if (nomeInterno.includes('floors') || nomeInterno.includes('walls') || nomeInterno.includes('chão') || nomeInterno.includes('paredes') || nomeInterno.includes('chao')) {
+                    chaveImagem = 'img_floors';
+                } 
+                // Prioridade Máxima para capturar itens pequenos antes dos móveis gerais
+                else if (nomeInterno.includes('small') || nomeInterno.includes('items') || nomeInterno.includes('mini') || nomeInterno.includes('detalhes') || nomeInterno.includes('pequenos')) {
+                    chaveImagem = 'img_small';
+                }
+                else if (nomeInterno.includes('furniturestate1') || nomeInterno.includes('furniture1') || nomeInterno.includes('objetos') || nomeInterno.includes('cozinha')) {
+                    chaveImagem = 'img_furn1';
+                } 
+                else if (nomeInterno.includes('furniturestate2') || nomeInterno.includes('furniture2') || nomeInterno.includes('cantos') || nomeInterno.includes('quarto')) {
+                    chaveImagem = 'img_furn2';
+                } 
+                else {
+                    // Se houver alguma aba com nome diferente, os objetos pequenos salvam a renderização
+                    chaveImagem = 'img_small';
+                }
+
+                console.log(`-> Associado com sucesso à imagem: ${chaveImagem}`);
+                
+                const tsCarregado = map.addTilesetImage(ts.name, chaveImagem);
+                if (tsCarregado) {
+                    todosOsTilesets.push(tsCarregado);
+                }
+            });
+        }
+
+        // Criar e desenhar todas as camadas do mapa de forma correta
+        // --- CRIAÇÃO E ORDENAÇÃO DE CAMADAS ---
+        if (map.layers && map.layers.length > 0) {
+            map.layers.forEach(camada => {
+                try {
+                    const novaCamada = map.createLayer(camada.name, todosOsTilesets, 0, 0);
+                    
+                    if (novaCamada) {
+                        let nome = camada.name.toLowerCase();
+
+                        // Ordem de profundidade (Depth):
+                        // Chão (0) -> Paredes (10) -> Mobília (20) -> Objetos Pequenos/Detalhes (30)
+                        if (nome.includes('chao') || nome.includes('chão') || nome.includes('floor')) {
+                            novaCamada.setDepth(0);
+                        } 
+                        else if (nome.includes('parede') || nome.includes('wall')) {
+                            novaCamada.setDepth(10);
+                            novaCamada.setCollisionByProperty({ collides: true });
+                            this.camadaDeColisao = novaCamada;
+                        } 
+                        else if (nome.includes('furniture') || nome.includes('moveis') || nome.includes('cozinha')) {
+                            novaCamada.setDepth(20);
+                        } 
+                        else {
+                            // Isto cobre "small", "items", "mini", "detalhes"
+                            // Tudo o que não for chão/parede/moveis vai para o topo
+                            novaCamada.setDepth(30);
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Erro ao carregar a camada: ${camada.name}`, e);
+                }
+            });
+        }
+
+        // =================================================================
+        // CRIAÇÃO DA PERSONAGEM (Cotton)
+        // =================================================================
+        this.player = this.physics.add.sprite(200, 200, 'cotton_player',0);
+        this.player.setScale(1);
+        this.player.setCollideWorldBounds(true); 
+        this.player.body.setSize(20, 18);       
+        this.player.body.setOffset(6, 14);      
+        this.player.setDepth(500); 
+
+        if (this.camadaDeColisao) {
+            this.physics.add.collider(this.player, this.camadaDeColisao);
+        }
+
+        // =================================================================
+        // CONFIGURAÇÃO DAS ANIMAÇÕES
+        // =================================================================
+        
+               const animsParaCriar = [
+    { key: 'andar_baixo',    prefix: 'WalkFront', end: 3 },
+    { key: 'andar_cima',     prefix: 'WalkBack',  end: 3 },
+    { key: 'andar_direita',  prefix: 'WalkRight', end: 7 },
+    { key: 'andar_esquerda', prefix: 'WalkLeft',  end: 7 }
+];
+
+animsParaCriar.forEach(anim => {
+    this.anims.create({
+        key: anim.key,
+        frames: this.anims.generateFrameNames('cotton_player', {
+            prefix: anim.prefix,
+            start: 0,
+            end: anim.end,   // Agora cada uma usa o seu limite correto!
+            zeroPad: 4
+        }),
+        frameRate: 10,
+        repeat: -1
+    });
+});
+        // =================================================================
+        // CONFIGURAÇÃO DA CÂMARA
+        // =================================================================
+        this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+        
+
+        // =================================================================
+        // UI CINEMATOGRÁFICA
+        // =================================================================
+        const gameWidth = this.cameras.main.width;
+        const gameHeight = this.cameras.main.height;
+        const amareloOlhos = 0xfaf3ad; 
+        const amareloTexto = '#faf3ad';
+
+        this.portraitSprite = this.add.image(0, gameHeight, 'cotton_neutra');
+        this.portraitSprite.setOrigin(0, 1); 
+        this.portraitSprite.setDisplaySize(520, 720); 
+
+        const boxX = 520; 
+        const boxHeight = 160; 
+        const boxY = gameHeight - boxHeight - 30; 
+        const boxWidth = gameWidth - boxX - 30; 
+
+        this.textBoxGraphics = this.add.graphics();
+        this.textBoxGraphics.fillStyle(0x0a0a0a, 1); 
+        this.textBoxGraphics.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+        this.textBoxGraphics.lineStyle(2, amareloOlhos, 0.2); 
+        this.textBoxGraphics.strokeRect(boxX - 4, boxY - 4, boxWidth + 8, boxHeight + 8);
+        this.textBoxGraphics.lineStyle(4, amareloOlhos, 1); 
+        this.textBoxGraphics.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        this.textBoxGraphics.lineStyle(2, amareloOlhos, 0.4);
+        this.textBoxGraphics.lineBetween(boxX + 30, boxY + 48, boxX + boxWidth - 30, boxY + 48);
+
+        this.nameText = this.add.text(boxX + 30, boxY + 14, "Cotton", {
+            fontFamily: "'Spectral', serif", fontSize: '28px', fill: amareloTexto, fontStyle: 'bold'
+        });
+
+        this.dialogueText = this.add.text(boxX + 30, boxY + 68, "", {
+            fontFamily: "'Spectral', serif", fontSize: '25px', fill: '#ffffff', fontStyle: 'italic',
+            wordWrap: { width: boxWidth - 60, useAdvancedWrap: true }
+        });
+
+        this.uiContainer = this.add.container(0, 0, [
+            this.textBoxGraphics, this.portraitSprite, this.nameText, this.dialogueText
+        ]);
+        this.uiContainer.setVisible(false); 
+        this.uiContainer.setScrollFactor(0); 
+        this.uiContainer.setDepth(999); 
+
+        this.teclado = this.input.keyboard.createCursorKeys();
+        this.teclaShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.teclaEspaco = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        this.falasExemplo = [
+            { nome: "Cotton", expressao: "cotton_neutra", texto: "Dizem que os gatos têm sete vidas... mas eu só preciso de sobreviver a esta noite." },
+            { nome: "Cotton", expressao: "cotton_angry", texto: "Que silêncio ensurdecedor... Quem cortou a eletricidade?!" },
+            { nome: "Cotton", expressao: "cotton_happy", texto: "A minha visão está a adaptar-se ao escuro. Consigo ver os contornos." }
+        ];
+        this.indiceFala = 0;
+
+        this.cameras.main.fadeIn(1200, 0, 0, 0);
+        this.cameras.main.once('camerafadeincomplete', () => {
+            this.podeInteragir = true;
+            this.proximaFala();
+        });
+    }
+
+    update() {
+        if (!this.podeInteragir) return;
+
+        if (this.uiContainer.visible) {
+            this.player.setVelocity(0);
+            this.player.anims.stop();
+
+            if (Phaser.Input.Keyboard.JustDown(this.teclado.up)) {
+                this.proximaFala();
+            }
+
+            if (Phaser.Input.Keyboard.JustDown(this.teclaEspaco)) {
+                this.uiContainer.setVisible(false);
+                if (this.textTimer) this.textTimer.destroy();
+            }
+            return; 
+        }
+
+        let velocidadeAtual = 140; 
+        let frameRateAnimacao = 10; 
+
+        if (this.teclaShift.isDown) {
+            velocidadeAtual = 240;    
+            frameRateAnimacao = 16;   
+        }
+
+        this.player.setVelocity(0);
+
+let animChave = null;
+
+if (this.teclado.left.isDown) {
+    this.player.setVelocityX(-velocidadeAtual);
+    animChave = 'andar_esquerda';
+
+} else if (this.teclado.right.isDown) {
+    this.player.setVelocityX(velocidadeAtual);
+    animChave = 'andar_direita';
+
+} else if (this.teclado.up.isDown) {
+    this.player.setVelocityY(-velocidadeAtual);
+    animChave = 'andar_cima';
+
+} else if (this.teclado.down.isDown) {
+    this.player.setVelocityY(velocidadeAtual);
+    animChave = 'andar_baixo';
+}
+        if (animChave) {
+            this.player.anims.play(animChave, true);
+            this.player.anims.currentAnim.frameRate = frameRateAnimacao;
+        } else {
+            this.player.anims.stop(); 
+            // Em vez de desaparecer, vamos forçar um frame de "parado"
+            this.player.setFrame(8); // Testa o frame 8 (deve ser o início da animação de andar baixo)
+        }
+    }
+
+    proximaFala() {
+        if (this.indiceFala < this.falasExemplo.length) {
+            const falaAtual = this.falasExemplo[this.indiceFala];
+            this.gataFala(falaAtual.nome, falaAtual.expressao, falaAtual.texto);
+            this.indiceFala++;
+        } else {
+            this.indiceFala = 0;
+            this.uiContainer.setVisible(false); 
+        }
+    }
+
+    gataFala(nome, chaveExpressao, message) {
+        this.nameText.setText(nome);
+        this.portraitSprite.setTexture(chaveExpressao);
+        this.uiContainer.setVisible(true);
+        this.typeWriterEffect(message, this.dialogueText, 45);
+    }
+
+    typeWriterEffect(textString, textObject, speed) {
+        let currentLength = 0;
+        textObject.setText('');
+        if (this.textTimer) this.textTimer.destroy();
+        this.textTimer = this.time.addEvent({
+            delay: speed,
+            callback: () => {
+                currentLength++;
+                textObject.setText(textString.substr(0, currentLength));
+                if (currentLength >= textString.length) {
+                    this.textTimer.destroy();
+                }
+            },
+            loop: true
+        });
+    }
+} */
